@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التحكم</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0b0e17;
+    --panel:#121523;
+    --panel-2:#151827;
+    --border:#232840;
+    --text:#e9ecf5;
+    --muted:#8b90a8;
+    --accent:#6a5cff;
+    --accent-2:#3a8bff;
+    --green:#22c55e;
+    --red:#ef4444;
+    --yellow:#eab308;
+    --purple:#9b6bff;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:radial-gradient(1200px 600px at 80% -10%, #171b2c 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:"Tajawal","Segoe UI",Arial,sans-serif;
+    padding:20px;
+  }
+
+  html[dir="ltr"] body{ font-family:"Segoe UI","Tajawal",Arial,sans-serif; }
+
+  .wrap{ max-width:1500px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+
+  /* ================= HEADER ================= */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .logo{
+    width:34px; height:34px; border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex; align-items:center; justify-content:center; font-size:16px;
+  }
+  .brand .name{ font-weight:800; font-size:17px; }
+  .topbar-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--panel); border:1px solid var(--border);
+    padding:8px 14px; border-radius:10px; font-size:13px; color:var(--text);
+  }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); }
+  .btn-refresh{
+    display:flex; align-items:center; gap:8px;
+    background:var(--panel); border:1px solid var(--border); color:var(--text);
+    padding:8px 14px; border-radius:10px; font-size:13px; cursor:pointer;
+  }
+  .btn-refresh:hover{ border-color:var(--accent); }
+
+  /* language switch */
+  .lang-switch{
+    display:flex; align-items:center; background:var(--panel);
+    border:1px solid var(--border); border-radius:10px; padding:3px; gap:2px;
+  }
+  .lang-btn{
+    border:none; background:transparent; color:var(--muted);
+    padding:6px 12px; border-radius:8px; font-size:12.5px; font-weight:700;
+    cursor:pointer; transition:.15s;
+  }
+  .lang-btn.active{ background:var(--accent); color:#fff; }
+
+  .header-title{ text-align:left; }
+  html[dir="rtl"] .header-title{ text-align:left; }
+  html[dir="ltr"] .header-title{ text-align:right; }
+  .header-title h1{ margin:0; font-size:22px; font-weight:800; }
+  .header-title p{ margin:2px 0 0; color:var(--muted); font-size:13px; }
+  .icon-badge{
+    width:44px; height:44px; border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .header-row{ display:flex; align-items:center; gap:14px; }
+
+  /* ================= FILTERS ================= */
+  .filters{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:12px 16px;
+  }
+  .filter-group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .chip{
+    padding:8px 16px; border-radius:9px; font-size:13px; border:1px solid var(--border);
+    background:transparent; color:var(--muted); cursor:pointer; transition:.15s; white-space:nowrap;
+  }
+  .chip.active{ background:var(--accent); border-color:var(--accent); color:#fff; font-weight:700; }
+  .chip:hover:not(.active){ border-color:#3a4066; color:var(--text); }
+  .filters-label{ display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; font-weight:600; }
+
+  /* ================= PANELS ================= */
+  .panel{ background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:18px; }
+  .panel-title{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; margin-bottom:14px; }
+  .panel-title .ic{ color:var(--accent-2); }
+
+  /* ================= LAYOUT ================= */
+  .row-top{ display:grid; grid-template-columns:1.05fr 1.4fr; gap:16px; }
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .stat-card{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:14px; }
+  .stat-card .label{ color:var(--muted); font-size:12.5px; margin-bottom:8px; }
+  .stat-card .value{ font-size:22px; font-weight:800; }
+  .stat-card .value.green{ color:var(--green); }
+  .stat-card .value.blue{ color:var(--accent-2); }
+  .stat-card .delta{ font-size:11.5px; margin-top:6px; color:var(--muted); }
+  .delta.up{ color:var(--green); }
+  .delta.down{ color:var(--red); }
+
+  .row-mid{ display:grid; grid-template-columns:1.3fr 1.3fr 1fr 1fr; gap:16px; }
+  .row-bottom{ display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:16px; }
+
+  /* ================= SALES ================= */
+  .best-day-badge{
+    display:inline-block; background:var(--panel-2); border:1px solid var(--border);
+    border-radius:8px; padding:6px 10px; font-size:11.5px; color:var(--muted); margin-bottom:10px;
+  }
+  .best-day-badge b{ color:var(--green); }
+
+  /* ================= TABLE ================= */
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{ color:var(--muted); text-align:right; font-weight:600; font-size:12px; padding:8px 6px; border-bottom:1px solid var(--border); }
+  html[dir="ltr"] th{ text-align:left; }
+  td{ padding:12px 6px; border-bottom:1px solid var(--border); }
+  tr:last-child td{ border-bottom:none; }
+  .rank{ color:var(--muted); }
+  .sku{ color:var(--muted); font-size:11.5px; }
+
+  /* ================= LEGEND ================= */
+  .legend{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+  .legend-item{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; }
+  .legend-left{ display:flex; align-items:center; gap:8px; }
+  .legend-dot{ width:9px; height:9px; border-radius:50%; }
+  .legend-item b{ font-size:12.5px; }
+  .donut-wrap{ display:flex; flex-direction:column; align-items:center; }
+
+  /* ================= CONVERSATIONS ================= */
+  .convo-item{ display:flex; flex-direction:column; gap:4px; padding:12px 0; border-bottom:1px solid var(--border); }
+  .convo-item:last-of-type{ border-bottom:none; }
+  .convo-head{ display:flex; align-items:center; justify-content:space-between; }
+  .convo-name{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:13.5px; }
+  .status-tag{ background:#2a1f4d; color:#b7a5ff; font-size:10.5px; padding:2px 8px; border-radius:20px; margin-right:4px; }
+  html[dir="ltr"] .status-tag{ margin-right:0; margin-left:4px; }
+  .convo-time{ color:var(--muted); font-size:11.5px; }
+  .convo-line{ font-size:12.5px; color:var(--muted); }
+  .convo-line b{ color:var(--text); font-weight:600; }
+  .btn-all{
+    width:100%; margin-top:8px; padding:10px; border-radius:9px; border:1px solid var(--border);
+    background:var(--panel-2); color:var(--text); font-size:13px; cursor:pointer;
+  }
+  .btn-all:hover{ border-color:var(--accent); }
+
+  /* ================= CONNECTION ================= */
+  .conn-card{ background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.35); border-radius:12px; padding:14px; margin-bottom:12px; }
+  .conn-title{ display:flex; align-items:center; gap:8px; font-weight:800; color:var(--green); font-size:14px; margin-bottom:8px; }
+  .conn-sub{ font-size:12px; color:var(--muted); }
+  .conn-sub2{ font-size:11.5px; color:var(--muted); margin-top:4px; }
+  .webhook-card{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+    display:flex; align-items:center; justify-content:space-between; font-size:13px;
+  }
+  .footer-note{ text-align:center; color:var(--muted); font-size:12px; padding:8px 0 0; }
+  canvas{ max-width:100%; }
+
+  @media(max-width:1100px){
+    .row-top,.row-mid,.row-bottom{ grid-template-columns:1fr; }
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media(max-width:650px){
+    body{ padding:12px; }
+    .filters{ align-items:flex-start; flex-direction:column; }
+    .filter-group{ width:100%; }
+    .chip{ flex:1; text-align:center; padding:8px 10px; }
+    .header-row{ width:100%; flex-wrap:wrap; }
+    .stat-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <!-- ================= HEADER ================= -->
+  <div class="topbar">
+    <div class="topbar-right">
+      <div class="brand">
+        <div class="logo">✨</div>
+        <div class="name">AI Dashboard</div>
+      </div>
+      <div class="lang-switch">
+        <button class="lang-btn active" id="btnAr" onclick="setLang('ar')">AR</button>
+        <button class="lang-btn" id="btnEn" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+
+    <div class="header-row">
+      <div class="pill">
+        <span class="dot"></span>
+        <span data-ar="بيانات مباشرة" data-en="Live data">بيانات مباشرة</span>
+      </div>
+      <div class="pill">
+        🕐 <span data-ar="آخر تحديث:" data-en="Last update:">آخر تحديث:</span>
+        <span id="lastUpdate">08:42:15</span>
+      </div>
+      <button class="btn-refresh" onclick="refreshNow()">
+        ↻ <span data-ar="تحديث الآن" data-en="Refresh now">تحديث الآن</span>
+      </button>
+
+      <div class="header-title">
+        <h1 data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</h1>
+        <p data-ar="نظرة عامة على المبيعات والمحادثات" data-en="Overview of sales and conversations">نظرة عامة على المبيعات والمحادثات</p>
+      </div>
+
+      <div class="icon-badge">📈</div>
+    </div>
+  </div>
+
+
+  <!-- ================= FILTERS ================= -->
+  <div class="filters">
+    <div class="filters-label">
+      📅 <span data-ar="الفترة الزمنية" data-en="Time period">الفترة الزمنية</span>
+    </div>
+    <div class="filter-group">
+      <button class="chip active" onclick="setPeriod(this)"><span data-ar="اليوم" data-en="Today">اليوم</span></button>
+      <button class="chip" onclick="setPeriod(this)"><span data-ar="آخر 7 أيام" data-en="Last 7 days">آخر 7 أيام</span></button>
+      <button class="chip" onclick="setPeriod(this)"><span data-ar="آخر 30 يوم" data-en="Last 30 days">آخر 30 يوم</span></button>
+      <button class="chip" onclick="setPeriod(this)"><span data-ar="هذا الشهر" data-en="This month">هذا الشهر</span></button>
+      <button class="chip" onclick="setPeriod(this)"><span data-ar="آخر 6 شهور" data-en="Last 6 months">آخر 6 شهور</span></button>
+      <button class="chip" onclick="setPeriod(this)"><span data-ar="هذه السنة" data-en="This year">هذه السنة</span></button>
+    </div>
+  </div>
+
+
+  <!-- ================= TOP ROW ================= -->
+  <div class="row-top">
+
+    <!-- SALES -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">💰</span> <span data-ar="المبيعات" data-en="Sales">المبيعات</span></div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="label" data-ar="إجمالي المبيعات" data-en="Total sales">إجمالي المبيعات</div>
+          <div class="value green">312,400 <span style="font-size:12px;color:var(--muted);">EGP</span></div>
+          <div class="delta up">↗ +12.5% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="label" data-ar="عدد الطلبات" data-en="Number of orders">عدد الطلبات</div>
+          <div class="value">19</div>
+          <div class="delta up">↗ +11.8% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="label" data-ar="متوسط قيمة الطلب" data-en="Average order value">متوسط قيمة الطلب</div>
+          <div class="value blue">16,442 <span style="font-size:12px;color:var(--muted);">EGP</span></div>
+          <div class="delta up">↗ +0.6% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="label" data-ar="معدل التحويل" data-en="Conversion rate">معدل التحويل</div>
+          <div class="value">13.4%</div>
+          <div class="delta up">↗ +3.6% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">📈</span> <span data-ar="مؤشرات الأداء الرئيسية" data-en="Key performance indicators">مؤشرات الأداء الرئيسية</span></div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="label" data-ar="متوسط وقت الرد" data-en="Average response time">متوسط وقت الرد</div>
+          <div class="value">6.4 <span style="font-size:12px;color:var(--muted);" data-ar="دقيقة" data-en="min">دقيقة</span></div>
+          <div class="delta down">↘ -8.6% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="label" data-ar="معدل الحل" data-en="Resolution rate">معدل الحل</div>
+          <div class="value blue">87%</div>
+          <div class="delta up">↗ +5.3% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="label" data-ar="العملاء الجدد" data-en="New customers">العملاء الجدد</div>
+          <div class="value">34</div>
+          <div class="delta up">↗ +21.4% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="label" data-ar="نسبة العملاء العائدين" data-en="Returning customer rate">نسبة العملاء العائدين</div>
+          <div class="value blue">67%</div>
+          <div class="delta up">↗ +7.2% <span data-ar="عن الفترة السابقة" data-en="vs previous period">عن الفترة السابقة</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= MID ROW ================= -->
+  <div class="row-mid">
+
+    <!-- SALES CHART -->
+    <div class="panel">
+      <div class="best-day-badge">
+        <span data-ar="أعلى يوم:" data-en="Best day:">أعلى يوم:</span>
+        <b><span data-ar="الإثنين" data-en="Monday">الإثنين</span> 45,200 EGP</b>
+      </div>
+      <div class="panel-title" style="margin-bottom:6px;" data-ar="المبيعات آخر 7 أيام" data-en="Sales - last 7 days">المبيعات آخر 7 أيام</div>
+      <canvas id="salesChart" height="180"></canvas>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">🛒</span> <span data-ar="أعلى المنتجات" data-en="Top products">أعلى المنتجات</span></div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th data-ar="المنتج" data-en="Product">المنتج</th>
+            <th>SKU</th>
+            <th data-ar="الوحدات" data-en="Sales">الوحدات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="rank">1</td><td>Apple iPhone 15 Pro Max 256GB</td><td class="sku">IPH-15PM-001</td><td>156,000 EGP</td></tr>
+          <tr><td class="rank">2</td><td>Samsung Galaxy S24 Ultra 256GB</td><td class="sku">SS-S24U-256</td><td>98,000 EGP</td></tr>
+          <tr><td class="rank">3</td><td>Apple AirPods Pro 2</td><td class="sku">AP-APP2-001</td><td>35,000 EGP</td></tr>
+          <tr><td class="rank">4</td><td>Apple Watch Series 9 45mm</td><td class="sku">AP-AW9-45</td><td>23,400 EGP</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TOPICS -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">💬</span> <span data-ar="أكثر المواضيع" data-en="Top topics">أكثر المواضيع</span></div>
+      <div class="donut-wrap"><canvas id="topicsChart" width="170" height="170"></canvas></div>
+      <div class="legend" id="topicsLegend"></div>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">👥</span> <span data-ar="حالة العملاء" data-en="Customer status">حالة العملاء</span></div>
+      <div class="donut-wrap"><canvas id="customersChart" width="170" height="170"></canvas></div>
+      <div class="legend" id="customersLegend"></div>
+    </div>
+  </div>
+
+
+  <!-- ================= BOTTOM ================= -->
+  <div class="row-bottom">
+
+    <!-- ACTIVITY -->
+    <div class="panel">
+      <div class="panel-title" data-ar="النشاط على مدار اليوم" data-en="Activity throughout the day">النشاط على مدار اليوم</div>
+      <canvas id="activityChart" height="170"></canvas>
+    </div>
+
+    <!-- CONVERSATIONS -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">💬</span> <span data-ar="المحادثات الأخيرة" data-en="Recent conversations">المحادثات الأخيرة</span></div>
+      <div class="convo-item">
+        <div class="convo-head">
+          <div class="convo-name"><span class="dot" style="background:var(--green);"></span> MAHMOUD</div>
+          <div class="convo-time">06:00</div>
+        </div>
+        <div><span class="status-tag" data-ar="قديم نشط" data-en="Active lead">قديم نشط</span></div>
+        <div class="convo-line"><b data-ar="الموضوع:" data-en="Topic:">الموضوع:</b> <span data-ar="استفسار سعر" data-en="Price inquiry">استفسار سعر</span></div>
+        <div class="convo-line"><b data-ar="الرسالة:" data-en="Message:">الرسالة:</b> <span data-ar="فيه ايفون 15 برو؟" data-en="Do you have the iPhone 15 Pro?">فيه ايفون 15 برو؟</span></div>
+        <div class="convo-line"><b data-ar="رد AI:" data-en="AI reply:">رد AI:</b> <span data-ar="أيوة عندنا iPhone 15 Pro بألوان مختلفة...." data-en="Yes, we have the iPhone 15 Pro in several colors....">أيوة عندنا iPhone 15 Pro بألوان مختلفة....</span></div>
+      </div>
+      <button class="btn-all">→ <span data-ar="عرض جميع المحادثات" data-en="View all conversations">عرض جميع المحادثات</span></button>
+    </div>
+
+    <!-- CONNECTION -->
+    <div class="panel">
+      <div class="panel-title"><span class="ic">📶</span> <span data-ar="حالة الاتصال" data-en="Connection status">حالة الاتصال</span></div>
+      <div class="conn-card">
+        <div class="conn-title"><span class="dot"></span> <span data-ar="متصل" data-en="Connected">متصل</span></div>
+        <div class="conn-sub" data-ar="جاري استقبال البيانات بنجاح من n8n" data-en="Successfully receiving data from n8n">جاري استقبال البيانات بنجاح من n8n</div>
+        <div class="conn-sub2"><span data-ar="آخر تحديث:" data-en="Last update:">آخر تحديث:</span> <span id="connTime">08:42:15</span></div>
+      </div>
+      <div class="webhook-card">
+        <span>🔗</span>
+        <span>Webhook: <span data-ar="متصل" data-en="Connected">متصل</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note" data-ar="جميع البيانات يتم تحديثها تلقائياً كل 30 ثانية" data-en="All data refreshes automatically every 30 seconds">جميع البيانات يتم تحديثها تلقائياً كل 30 ثانية</div>
+
+</div>
+
+<script>
+Chart.defaults.color = '#8b90a8';
+Chart.defaults.font.family = "Tajawal, Segoe UI, Arial, sans-serif";
+
+let currentLang = 'ar';
+
+/* ================= PERIOD SWITCH ================= */
+function setPeriod(el){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ================= LANGUAGE SWITCH ================= */
+function setLang(lang){
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.title = lang === 'ar' ? 'لوحة التحكم' : 'Dashboard';
+
+  document.getElementById('btnAr').classList.toggle('active', lang==='ar');
+  document.getElementById('btnEn').classList.toggle('active', lang==='en');
+
+  document.querySelectorAll('[data-ar]').forEach(el=>{
+    el.textContent = lang==='ar' ? el.dataset.ar : el.dataset.en;
+  });
+
+  updateChartsLang(lang);
+}
+
+/* ================= SALES CHART ================= */
+const salesLabels = {
+  ar:['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'],
+  en:['Sat','Sun','Mon','Tue','Wed','Thu','Fri']
+};
+const salesValues = [22400,31800,45200,28700,36600,41300,35000];
+
+const salesChart = new Chart(document.getElementById('salesChart'), {
+  type:'line',
+  data:{
+    labels:salesLabels.ar,
+    datasets:[{
+      data:salesValues,
+      borderColor:'#3a8bff',
+      backgroundColor:(ctx)=>{
+        const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+        g.addColorStop(0,'rgba(58,139,255,0.35)');
+        g.addColorStop(1,'rgba(58,139,255,0.02)');
+        return g;
+      },
+      fill:true, tension:.35, pointRadius:4,
+      pointBackgroundColor:'#3a8bff', pointBorderColor:'#0b0e17',
+      pointBorderWidth:2, borderWidth:2.5
+    }]
+  },
+  options:{
+    plugins:{
+      legend:{display:false},
+      tooltip:{ callbacks:{ label:(c)=>c.parsed.y.toLocaleString()+' EGP' } }
+    },
+    scales:{
+      x:{grid:{display:false}},
+      y:{grid:{color:'#1c2036'}, ticks:{callback:(v)=> (v/1000)+'K'}}
+    }
+  },
+  plugins:[{
+    id:'datalabels-sales',
+    afterDatasetsDraw(chart){
+      const {ctx} = chart;
+      chart.data.datasets[0].data.forEach((val,i)=>{
+        const meta = chart.getDatasetMeta(0);
+        const pt = meta.data[i];
+        ctx.save();
+        ctx.fillStyle = '#e9ecf5';
+        ctx.font = 'bold 11px Tajawal';
+        ctx.textAlign = 'center';
+        ctx.fillText(val.toLocaleString(), pt.x, pt.y - 12);
+        ctx.restore();
+      });
+    }
+  }]
+});
+
+/* ================= ACTIVITY CHART ================= */
+const activityChart = new Chart(document.getElementById('activityChart'), {
+  type:'line',
+  data:{
+    labels:['00:00','02:00','04:00','06:00','08:00','10:00','12:00','14:00','16:00','18:00','20:00','22:00'],
+    datasets:[{
+      data:[2,1,0,1,3,5,9,14,18,22,19,17],
+      borderColor:'#9b6bff',
+      backgroundColor:(ctx)=>{
+        const g = ctx.chart.ctx.createLinearGradient(0,0,0,220);
+        g.addColorStop(0,'rgba(155,107,255,0.35)');
+        g.addColorStop(1,'rgba(155,107,255,0.02)');
+        return g;
+      },
+      fill:true, tension:.4, pointRadius:3,
+      pointBackgroundColor:'#9b6bff', borderWidth:2.5
+    }]
+  },
+  options:{
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{display:false}, ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:12}},
+      y:{grid:{color:'#1c2036'}}
+    }
+  }
+});
+
+/* ================= TOPICS DONUT ================= */
+const topicsData = [
+  {ar:'استفسار سعر', en:'Price inquiry', value:42, color:'#3a8bff'},
+  {ar:'تفاصيل منتج', en:'Product details', value:27, color:'#22c55e'},
+  {ar:'مشكلة تقنية', en:'Technical issue', value:15, color:'#eab308'},
+  {ar:'تتبع طلب', en:'Order tracking', value:9, color:'#9b6bff'},
+  {ar:'أخرى', en:'Other', value:7, color:'#6a5cff'}
+];
+
+const topicsChart = new Chart(document.getElementById('topicsChart'), {
+  type:'doughnut',
+  data:{
+    labels:topicsData.map(d=>d.ar),
+    datasets:[{data:topicsData.map(d=>d.value), backgroundColor:topicsData.map(d=>d.color), borderWidth:0}]
+  },
+  options:{cutout:'68%', plugins:{legend:{display:false}}}
+});
+
+/* ================= CUSTOMERS DONUT ================= */
+const custData = [
+  {ar:'عميل جديد', en:'New customer', value:18, color:'#3a8bff'},
+  {ar:'عميل عائد', en:'Returning customer', value:67, color:'#22c55e'},
+  {ar:'غير نشط', en:'Inactive', value:15, color:'#eab308'}
+];
+
+const customersChart = new Chart(document.getElementById('customersChart'), {
+  type:'doughnut',
+  data:{
+    labels:custData.map(d=>d.ar),
+    datasets:[{data:custData.map(d=>d.value), backgroundColor:custData.map(d=>d.color), borderWidth:0}]
+  },
+  options:{cutout:'68%', plugins:{legend:{display:false}}}
+});
+
+function renderLegend(elId, data, lang){
+  document.getElementById(elId).innerHTML = data.map(d=>`
+    <div class="legend-item">
+      <div class="legend-left"><span class="legend-dot" style="background:${d.color}"></span>${lang==='ar'?d.ar:d.en}</div>
+      <b>${d.value}%</b>
+    </div>`).join('');
+}
+
+function updateChartsLang(lang){
+  salesChart.data.labels = salesLabels[lang];
+  salesChart.update();
+
+  topicsChart.data.labels = topicsData.map(d=> lang==='ar' ? d.ar : d.en);
+  topicsChart.update();
+  renderLegend('topicsLegend', topicsData, lang);
+
+  customersChart.data.labels = custData.map(d=> lang==='ar' ? d.ar : d.en);
+  customersChart.update();
+  renderLegend('customersLegend', custData, lang);
+}
+
+/* initial legends render */
+renderLegend('topicsLegend', topicsData, 'ar');
+renderLegend('customersLegend', custData, 'ar');
+
+/* ================= REFRESH ================= */
+function refreshNow(){
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8);
+  document.getElementById('lastUpdate').textContent = t;
+  document.getElementById('connTime').textContent = t;
+}
+</script>
+</body>
+</html>
